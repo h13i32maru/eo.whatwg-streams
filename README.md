@@ -9,7 +9,7 @@ The changes are
 - Work on browser with [browserify](http://browserify.org/)
 - Use the minimum assertion instead of Node.js assertion.
 
-# Install
+## Install
 
 ```sh
 mkdir work
@@ -17,8 +17,8 @@ cd work
 npm install eo.whatwg-streams
 ```
 
-# Example
-## for browser
+## Example
+### for browser
 
 ```html
 <script src="./node_modules/eo.whatwg-streams/out/src/index-browser.js"></script>
@@ -27,7 +27,7 @@ npm install eo.whatwg-streams
 </script>
 ```
 
-## for Node.js
+### for Node.js
 
 ```js
 var Streams = require('eo.whatwg-streams');
@@ -35,13 +35,13 @@ var Streams = require('eo.whatwg-streams');
 console.log(Streams.ReadableStream);
 ```
 
-# API and Document
+## API and Document
 
 - https://github.com/whatwg/streams
 - https://streams.spec.whatwg.org/
 - http://blog.h13i32maru.jp/entry/2015/02/01/120918
 
-# LICENSE
+## LICENSE
 MIT
 
 This software includes [whatwg/streams](https://github.com/whatwg/streams)(CC0). commit is [ac47325](https://github.com/whatwg/streams/commit/ac47325f40656f209dc140b256793cf4232b8f17)
@@ -66,5 +66,3 @@ npm run build
 npm run start
 open http://localhost:8080/misc/index.html
 ```
-
-
