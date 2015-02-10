@@ -26,7 +26,7 @@
     "karma-safari-launcher": "^0.1.1",
     "karma-cli": "^0.0.4",
     "karma-coverage": "^0.2.7",
-    "jsdoc": "^3.3.0",
+    "jsdoc": "",
     "http-server": "^0.7.4"
   },
   "keywords": ["whatwg", "streams"],
