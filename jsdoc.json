@@ -1,0 +1,15 @@
+{
+  "plugins": ["plugins/markdown"],
+  "markdown": {
+    "parser": "gfm",
+    "hardwrap": true
+  },
+  "source": {
+    "include": "./out/src/"
+  },
+  "opts": {
+    "template": "./misc/jsdoc/default",
+    "destination": "./out/doc/",
+    "recurse": true
+  }
+}

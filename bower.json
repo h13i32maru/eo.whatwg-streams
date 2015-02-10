@@ -1,0 +1,8 @@
+{
+  "name": "eo.whatwg-streams",
+  "version": "0.0.1",
+  "license": "MIT",
+  "dependencies": {
+    "power-assert": "^0.10.1"
+  }
+}
