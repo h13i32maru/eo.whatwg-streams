@@ -1,7 +1,5 @@
 #!/bin/bash
 
-./script/build.sh
-
 mkdir -p out/doc
 ./node_modules/.bin/jsdoc -c jsdoc.json
 

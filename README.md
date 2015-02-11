@@ -37,9 +37,9 @@ console.log(Streams.ReadableStream);
 
 ## API and Document
 
-- https://github.com/whatwg/streams
-- https://streams.spec.whatwg.org/
-- http://blog.h13i32maru.jp/entry/2015/02/01/120918
+- [https://github.com/whatwg/streams](https://github.com/whatwg/streams)
+- [https://streams.spec.whatwg.org/](https://streams.spec.whatwg.org/)
+- [http://blog.h13i32maru.jp/entry/2015/02/01/120918](http://blog.h13i32maru.jp/entry/2015/02/01/120918)
 
 ## LICENSE
 MIT

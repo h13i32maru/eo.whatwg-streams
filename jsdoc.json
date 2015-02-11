@@ -5,11 +5,12 @@
     "hardwrap": true
   },
   "source": {
-    "include": "./out/src/"
+    "include": "./interface/"
   },
   "opts": {
-    "template": "./misc/jsdoc/default",
+    "_template": "./misc/jsdoc/default",
     "destination": "./out/doc/",
-    "recurse": true
+    "recurse": true,
+    "readme": "./README.md"
   }
 }
