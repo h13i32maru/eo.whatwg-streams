@@ -51,6 +51,7 @@
             <?js= self.partial('method.tmpl', module) ?>
         <?js }) ?>
     <?js } else if (doc.kind === 'class') { ?>
+        <?js= self.partial('class_summary.tmpl', doc) ?>
         <?js= self.partial('method.tmpl', doc) ?>
     <?js } else { ?>
         <?js if (doc.description) { ?>

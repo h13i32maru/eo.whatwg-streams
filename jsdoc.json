@@ -8,7 +8,7 @@
     "include": "./interface/"
   },
   "opts": {
-    "_template": "./misc/jsdoc/default",
+    "template": "./misc/jsdoc/default",
     "destination": "./out/doc/",
     "recurse": true,
     "readme": "./README.md"

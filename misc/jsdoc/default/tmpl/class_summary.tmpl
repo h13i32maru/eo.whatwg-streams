@@ -1,0 +1,74 @@
+<?js
+var data = obj;
+var self = this;
+
+var shorten = function(desc) {
+  if (!desc) return "";
+
+  var len = desc.length;
+  var inSQuote = false;
+  var inWQuote = false;
+  var inCode = false;
+  for (var i = 0; i < desc.length; i++) {
+    var char1 = desc.charAt(i);
+    var char4 = desc.substr(i, 6);
+    var char5 = desc.substr(i, 7);
+    if (char1 === "'") inSQuote = !inSQuote;
+    else if (char1 === '"') inWQuote = !inWQuote;
+    else if (char4 === '<code>') inCode = true;
+    else if (char5 === '</code>') inCode = false;
+
+    if (inSQuote || inCode || inWQuote) continue;
+
+    if (char1 === '.' || char1 === '\n') {
+        len = i + 1;
+        break;
+    }
+  }
+
+  return desc.substr(0, len);
+}
+
+var members = self.find({kind: 'member', memberof: data.longname});
+var methods = self.find({kind: 'function', memberof: data.longname});
+?>
+
+<h2>Summary</h2>
+<table class="class-summary">
+<thead>
+  <tr><td>Constructor</td></tr>
+</thead>
+  <tr>
+    <td><p><a href="#<?js= data.name ?>"><?js= data.name ?></a><?js= data.signature?></p> <?js= shorten(data.description || "") ?></td>
+  </tr>
+<tbody>
+</tbody>
+</table>
+
+<table class="class-summary">
+<thead>
+  <tr><td>Members</td></tr>
+</thead>
+<tbody>
+  <?js members.forEach(function(p) {?>
+    <tr>
+      <td><p><a href="#<?js= p.name?>"><?js= p.name ?></a><?js= self.partial('type.tmpl', p.type.names) ?> <?js= shorten(p.description) ?></td>
+    </tr>
+  <?js }); ?>
+</tbody>
+</table>
+
+<table class="class-summary">
+<thead>
+  <tr><td>Methods</td></tr>
+</thead>
+<tbody>
+  <?js methods.forEach(function(p) {?>
+    <tr>
+      <td><p><a href="#<?js= p.name ?>"><?js= p.name ?></a><?js= p.signature ?> <?js= shorten(p.description) ?></td>
+    </tr>
+  <?js }); ?>
+</tbody>
+</table>
+
+

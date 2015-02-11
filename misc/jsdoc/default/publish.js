@@ -176,7 +176,7 @@ function addSignatureTypes(f) {
     var types = f.type ? buildItemTypeStrings(f) : [];
 
     f.signature = (f.signature || '') + '<span class="type-signature">' +
-        (types.length ? ' :' + types.join('|') : '') + '</span>';
+        (types.length ? ' {' + types.join('|') + '}' : '') + '</span>';
 }
 
 function addAttribs(f) {
@@ -326,7 +326,7 @@ function linktoExternal(longName, name) {
  * @return {string} The HTML for the navigation sidebar.
  */
 function buildNav(members) {
-    var nav = '<h2><a href="/doc">Home</a></h2>',
+    var nav = '<h2><a href="index.html">Home</a></h2>',
         seen = {};
 
     nav += buildMemberNav(members.modules, 'Modules', {}, linkto);
