@@ -8,9 +8,12 @@
     "include": "./interface/"
   },
   "opts": {
-    "template": "./misc/jsdoc/default",
-    "destination": "./out/doc/",
+    "_template": "./misc/jsdoc/default",
+    "_destination": "./out/doc/",
+    "template": "./misc/jsdoc/jsdoc-cloudy",
+    "destination": "./out/doc-new/",
     "recurse": true,
-    "readme": "./README.md"
+    "readme": "./README.md",
+    "package": "./package.json"
   }
 }

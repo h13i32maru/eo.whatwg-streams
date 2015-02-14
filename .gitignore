@@ -1,6 +1,9 @@
 /node_modules
 /out
-/npm-debug.log
+npm-debug.log
 /bower_components
 /coverage
 /misc/type
+
+/misc/jsdoc/jsdoc-cloudy/node_modules
+/misc/node_modules/spruce-template/node_modules

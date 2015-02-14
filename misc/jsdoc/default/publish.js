@@ -631,3 +631,29 @@ exports.publish = function(taffyData, opts, tutorials) {
     }
     saveChildren(tutorials);
 };
+
+//var path = require('path');
+var filePath = path.resolve(__dirname, './sample.html');
+var SpruceTemplate = require('spruce-template');
+//var fs = require('fs');
+var html = fs.readFileSync(filePath, {encoding: 'utf-8'});
+//
+var values = [{name: 'a', age: 12}, {name: 'b', age: 20}, {name: 'c', age: 30}];
+var s = new SpruceTemplate(html);
+s.text('title', 'Alice');
+s.attr('title', 'href', 'http://hoge.com');
+s.hide('title').show('title');
+s.load('title', new SpruceTemplate(html));
+s.loop('names', values, function(i, v, s){ s.text('name', v.name).text('age', v.age) });
+console.log(s.take());
+
+//exports.publish = function(taffyData, opts, tutorials) {
+//  taffyData().each(function(data){
+//    if (data.kind === 'class') {
+//      console.log(data.name);
+//      var m = taffyData({memberof: data.longname}).first();
+//      console.log(m);
+//      console.log('===================');
+//    }
+//  });
+//};

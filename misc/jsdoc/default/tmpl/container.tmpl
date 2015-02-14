@@ -128,7 +128,7 @@
         }
         if (members && members.length && members.forEach) {
     ?>
-        <h3 class="subsection-title">Members</h3>
+        <h2 class="subsection-title">Members</h2>
 
         <?js members.forEach(function(p) { ?>
             <?js= self.partial('members.tmpl', p) ?>
@@ -139,7 +139,7 @@
         var methods = self.find({kind: 'function', memberof: isGlobalPage ? {isUndefined: true} : doc.longname});
         if (methods && methods.length && methods.forEach) {
     ?>
-        <h3 class="subsection-title">Methods</h3>
+        <h2 class="subsection-title">Methods</h2>
 
         <?js methods.forEach(function(m) { ?>
             <?js= self.partial('method.tmpl', m) ?>
