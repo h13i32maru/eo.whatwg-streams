@@ -16,5 +16,8 @@
     "recurse": true,
     "readme": "./README.md",
     "package": "./package.json"
+  },
+  "template": {
+    "title": "eo.whatwg-streams"
   }
 }

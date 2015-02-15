@@ -69,15 +69,12 @@ function buildNav(data) {
     s.attr("className", "href", "./" + classDoc.longname + ".html");
   });
 
-  // functions
-  var functionDocs = find(data, { kind: "function", memberof: { isUndefined: true }, scope: "global" });
-  s.loop("functionDoc", functionDocs, function (i, functionDoc, s) {
-    s.text("functionName", functionDoc.name);
-    s.attr("functionName", "href", "@global.html#" + functionDoc.name);
-  });
-
   // namespaces
   var namespaceDocs = find(data, { kind: "namespace" });
+  var globalNamespaceDoc = getGlobalNamespaceDoc(data);
+  if (globalNamespaceDoc) {
+    namespaceDocs.unshift(globalNamespaceDoc);
+  }
   s.loop("namespaceDoc", namespaceDocs, function (i, namespaceDoc, s) {
     s.text("namespace", namespaceDoc.longname);
     s.attr("namespace", "href", "" + namespaceDoc.longname + ".html");
@@ -86,24 +83,37 @@ function buildNav(data) {
   return s.html;
 }
 
-function buildIndex(options) {
-  var html = readTemplate("index.html");
-  var s = new SpruceTemplate(html);
+function buildIndex(data, options) {
+  var packageObj = getPackageObject(options["package"]);
+  var title = options.template.title || packageObj.name;
+  var classDocs = find(data, { kind: "class" });
+  var namespaceDocs = find(data, { kind: "namespace" });
+  var globalNamespaceDoc = getGlobalNamespaceDoc(data);
+  if (globalNamespaceDoc) {
+    namespaceDocs.unshift(globalNamespaceDoc);
+  }
+
+  var s = new SpruceTemplate(readTemplate("index.html"));
+
+  s.text("title", title);
+  s.load("summaryClassDocs", buildSummaryClasses(classDocs));
+  s.load("summaryNamespaceDocs", buildSummaryNamespaces(namespaceDocs));
 
   if (options["package"]) {
-    var packageObj = getPackageObject(options["package"]);
+    s.text("version", packageObj.version);
     s.text("repo", packageObj.repository.url);
     s.attr("repo", "href", packageObj.repository.url);
   } else {
     s.drop("package");
   }
 
-  if (options.readme) {
-    s.load("readme", options.readme);
-  } else {
-    s.drop("readme");
-  }
+  return s.html;
+}
 
+function buildReadme(options) {
+  var html = readTemplate("readme.html");
+  var s = new SpruceTemplate(html);
+  s.load("readme", options.readme);
   return s.html;
 }
 
@@ -127,34 +137,32 @@ function buildClass(clazz, data) {
   return s.html;
 }
 
-function buildGlobal(data) {
-  var functionDocs = find(data, { kind: "function", memberof: { isUndefined: true }, scope: "global" });
-  return buildFunctions(functionDocs);
-}
+//function buildGlobal(data) {
+//  var functionDocs = find(data, {kind: 'function', memberof: {isUndefined: true}, scope: 'global'});
+//  return buildFunctions(functionDocs);
+//}
 
 function buildNamespace(namespaceDoc, data) {
+  if (namespaceDoc.longname === "@global") {
+    var memberof = { isUndefined: true };
+  } else {
+    var memberof = namespaceDoc.longname;
+  }
+  var namespaceDocs = find(data, { kind: "namespace", memberof: memberof });
+  var functionDocs = find(data, { kind: "function", memberof: memberof });
+  var memberDocs = find(data, { kind: "member", memberof: memberof });
+  var classDocs = find(data, { kind: "class", memberof: memberof });
+
   var s = new SpruceTemplate(readTemplate("namespace.html"));
 
   s.text("parentNamespace", namespaceDoc.namespace);
   s.text("namespace", namespaceDoc.longname);
   s.text("namespaceDesc", namespaceDoc.description);
 
-  // summary classes
-  var classDocs = find(data, { kind: "class", memberof: namespaceDoc.longname });
   s.load("summaryClassDocs", buildSummaryClasses(classDocs));
-
-  // summary members
-  var memberDocs = find(data, { kind: "member", memberof: namespaceDoc.longname });
   s.load("summaryMemberDocs", buildSummaryMembers(memberDocs, "Members"));
-
-  // summary functions
-  var functionDocs = find(data, { kind: "function", memberof: namespaceDoc.longname });
   s.load("summaryFunctionDocs", buildSummaryFunctions(functionDocs, "Functions"));
-
-  // summary namespaces
-  var namespaceDocs = find(data, { kind: "namespace", memberof: namespaceDoc.longname });
   s.load("summaryNamespaceDocs", buildSummaryNamespaces(namespaceDocs, "Namespaces"));
-
   s.load("memberDocs", buildMembers(memberDocs));
   s.load("functionDocs", buildFunctions(functionDocs));
 
@@ -292,13 +300,17 @@ function buildDocLink(longname) {
       return "<span><a href=#" + longname + ">" + text + "</a></span>";
     }
 
+    if (longname === "@global") {
+      return "<span><a href=\"@global.html\">@global</a></span>";
+    }
+
     var result = find(ENV.data, { longname: longname });
     if (result && result.length === 1) {
-      return "<span><a href=" + longname + ".html>" + text + "</a></span>";
+      return "<span><a href=\"" + longname + ".html\">" + text + "</a></span>";
     } else {
       var result = find(ENV.data, { name: longname });
       if (result && result.length) {
-        return "<span><a href=" + result[0].longname + ".html>" + text + "</a></span>";
+        return "<span><a href=\"" + result[0].longname + ".html\">" + text + "</a></span>";
       } else {
         return "<span>" + text + "</span>";
       }
@@ -379,6 +391,14 @@ function resolveLink(data) {
   });
 }
 
+function getGlobalNamespaceDoc(data) {
+  if (find(data, { memberof: { isUndefined: true } }).length) {
+    return { longname: "@global", name: "@global", kind: "namespace" };
+  }
+
+  return null;
+}
+
 var ENV = {};
 
 /**
@@ -397,14 +417,17 @@ exports.publish = function (data, config, tutorials) {
   s.load("nav", buildNav(data));
 
   // index.html
-  var indexHTML = buildIndex(config);
-  s.load("content", indexHTML);
+  s.load("content", buildIndex(data, config));
   writeHTML(config, "index.html", s.html);
 
+  // readme.html
+  s.load("content", buildReadme(config));
+  writeHTML(config, "readme.html", s.html);
+
   // @global.html
-  var globalHTML = buildGlobal(data);
-  s.load("content", globalHTML);
-  writeHTML(config, "@global.html", s.html);
+  //var globalHTML = buildGlobal(data);
+  //s.load('content', globalHTML);
+  //writeHTML(config, '@global.html', s.html);
 
   // classes
   //var classes = find(data, {kind: 'class', name: 'ReadableStream'});
@@ -417,6 +440,8 @@ exports.publish = function (data, config, tutorials) {
 
   // namespaces
   var namespaceDocs = find(data, { kind: "namespace" });
+  var globalNamespaceDoc = getGlobalNamespaceDoc(data);
+  if (globalNamespaceDoc) namespaceDocs.unshift(globalNamespaceDoc);
   for (var _iterator = namespaceDocs[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
     var namespaceDoc = _step.value;
     var namespaceHTML = buildNamespace(namespaceDoc, data);
