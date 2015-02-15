@@ -18,7 +18,8 @@
   "devDependencies" : {
     "6to5": "^3.4.0",
     "http-server": "^0.7.4",
-    "fs-extra": ""
+    "fs-extra": "",
+    "escape-html": ""
   },
   "keywords": ["html", "template"],
   "files": ["out/src/", "src/", "bowser.json", "README.md"],

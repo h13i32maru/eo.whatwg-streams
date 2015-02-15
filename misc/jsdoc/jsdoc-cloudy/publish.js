@@ -8,6 +8,11 @@ var fs = _interopRequire(require("fs-extra"));
 
 var path = _interopRequire(require("path"));
 
+var escape = _interopRequire(require("escape-html"));
+
+
+
+
 function readTemplate(fileName) {
   var filePath = path.resolve(__dirname, "./template/" + fileName);
   return fs.readFileSync(filePath, { encoding: "utf-8" });
@@ -54,13 +59,28 @@ function getPackageObject(filePath) {
 }
 
 function buildNav(data) {
-  var myClasses = find(data, { kind: "class" });
-
   var html = readTemplate("nav.html");
   var s = new SpruceTemplate(html);
-  s.loop("classNames", myClasses, function (i, myClass, s) {
-    s.text("className", myClass.name);
-    s.attr("className", "href", "./" + myClass.longname + ".html");
+
+  // classes
+  var classDocs = find(data, { kind: "class" });
+  s.loop("classDoc", classDocs, function (i, classDoc, s) {
+    s.text("className", classDoc.name);
+    s.attr("className", "href", "./" + classDoc.longname + ".html");
+  });
+
+  // functions
+  var functionDocs = find(data, { kind: "function", memberof: { isUndefined: true }, scope: "global" });
+  s.loop("functionDoc", functionDocs, function (i, functionDoc, s) {
+    s.text("functionName", functionDoc.name);
+    s.attr("functionName", "href", "@global.html#" + functionDoc.name);
+  });
+
+  // namespaces
+  var namespaceDocs = find(data, { kind: "namespace" });
+  s.loop("namespaceDoc", namespaceDocs, function (i, namespaceDoc, s) {
+    s.text("namespace", namespaceDoc.longname);
+    s.attr("namespace", "href", "" + namespaceDoc.longname + ".html");
   });
 
   return s.html;
@@ -87,54 +107,126 @@ function buildIndex(options) {
   return s.html;
 }
 
-function buildSummaryConstructor(clazz) {
-  var s = new SpruceTemplate(readTemplate("summary.html"));
-  s.text("title", "Constructor");
-  s.load("name", buildDocLink(clazz.name, clazz.name, { inner: true }));
-  s.load("signature", buildFunctionSignature(clazz));
-  s.load("description", shorten(clazz.description));
+function buildClass(clazz, data) {
+  var memberDocs = find(data, { kind: "member", memberof: clazz.longname });
+  var methodDocs = find(data, { kind: "function", memberof: clazz.longname });
+
+  var s = new SpruceTemplate(readTemplate("class.html"));
+
+  s.text("nameSpace", clazz.memberof);
+  s.text("className", clazz.name);
+  s.load("classDesc", clazz.classdesc);
+
+  s.load("summaryConstructor", buildSummaryFunctions([clazz], "Constructor"));
+  s.load("summaryMembers", buildSummaryMembers(memberDocs, "Members"));
+  s.load("summaryMethods", buildSummaryFunctions(methodDocs, "Methods"));
+  s.load("constructor", buildFunctions([clazz]));
+  s.load("members", buildMembers(memberDocs));
+  s.load("methods", buildFunctions(methodDocs));
 
   return s.html;
 }
 
-function buildSummaryMembers(clazz) {
+function buildGlobal(data) {
+  var functionDocs = find(data, { kind: "function", memberof: { isUndefined: true }, scope: "global" });
+  return buildFunctions(functionDocs);
+}
+
+function buildNamespace(namespaceDoc, data) {
+  var s = new SpruceTemplate(readTemplate("namespace.html"));
+
+  s.text("parentNamespace", namespaceDoc.namespace);
+  s.text("namespace", namespaceDoc.longname);
+  s.text("namespaceDesc", namespaceDoc.description);
+
+  // summary classes
+  var classDocs = find(data, { kind: "class", memberof: namespaceDoc.longname });
+  s.load("summaryClassDocs", buildSummaryClasses(classDocs));
+
+  // summary members
+  var memberDocs = find(data, { kind: "member", memberof: namespaceDoc.longname });
+  s.load("summaryMemberDocs", buildSummaryMembers(memberDocs, "Members"));
+
+  // summary functions
+  var functionDocs = find(data, { kind: "function", memberof: namespaceDoc.longname });
+  s.load("summaryFunctionDocs", buildSummaryFunctions(functionDocs, "Functions"));
+
+  // summary namespaces
+  var namespaceDocs = find(data, { kind: "namespace", memberof: namespaceDoc.longname });
+  s.load("summaryNamespaceDocs", buildSummaryNamespaces(namespaceDocs, "Namespaces"));
+
+  s.load("memberDocs", buildMembers(memberDocs));
+  s.load("functionDocs", buildFunctions(functionDocs));
+
+  return s.html;
+}
+
+function buildSummaryMembers(memberDocs) {
+  var title = arguments[1] === undefined ? "Members" : arguments[1];
   var s = new SpruceTemplate(readTemplate("summary.html"));
-  var members = find(ENV.data, { kind: "member", memberof: clazz.longname });
 
   s.text("title", "Members");
-  s.loop("target", members, function (i, member, s) {
-    s.load("name", buildDocLink(member.name, member.name, { inner: true }));
-    s.load("signature", buildVariableSignature(member));
-    s.load("description", shorten(member.description));
+  s.loop("target", memberDocs, function (i, memberDoc, s) {
+    s.load("name", buildDocLink(memberDoc.name, memberDoc.name, { inner: true }));
+    s.load("signature", buildVariableSignature(memberDoc));
+    s.load("description", shorten(memberDoc.description));
   });
 
   return s.html;
 }
 
-function buildSummaryMethods(clazz) {
+function buildSummaryFunctions(functionDocs) {
+  var title = arguments[1] === undefined ? "Functions" : arguments[1];
   var s = new SpruceTemplate(readTemplate("summary.html"));
-  var methods = find(ENV.data, { kind: "function", memberof: clazz.longname });
 
-  s.text("title", "Methods");
-  s.loop("target", methods, function (i, method, s) {
-    s.load("name", buildDocLink(method.name, method.name, { inner: true }));
-    s.load("signature", buildFunctionSignature(method));
-    s.load("description", shorten(method.description));
+  s.text("title", title);
+  s.loop("target", functionDocs, function (i, functionDoc, s) {
+    s.load("name", buildDocLink(functionDoc.name, functionDoc.name, { inner: true }));
+    s.load("signature", buildFunctionSignature(functionDoc));
+    s.load("description", shorten(functionDoc.description));
   });
 
   return s.html;
 }
 
-function buildMethods(funcRecords) {
+function buildSummaryClasses(classDocs) {
+  var innerLink = arguments[1] === undefined ? false : arguments[1];
+  var s = new SpruceTemplate(readTemplate("summary.html"));
+
+  s.text("title", "Classes");
+  s.loop("target", classDocs, function (i, classDoc, s) {
+    s.load("name", buildDocLink(classDoc.longname, classDoc.name, { inner: innerLink }));
+    s.load("signature", buildFunctionSignature(classDoc));
+    s.load("description", shorten(classDoc.description));
+  });
+
+  return s.html;
+}
+
+function buildSummaryNamespaces(namespaceDocs) {
+  var s = new SpruceTemplate(readTemplate("summary.html"));
+
+  s.text("title", "Namespaces");
+  s.loop("target", namespaceDocs, function (i, namespaceDoc, s) {
+    s.load("name", buildDocLink(namespaceDoc.longname, namespaceDoc.name, { inner: false }));
+    s.drop("signature");
+    s.load("description", shorten(namespaceDoc.description));
+  });
+
+  return s.html;
+}
+
+// kind = function
+function buildFunctions(functionDocs) {
   var s = new SpruceTemplate(readTemplate("methods.html"));
 
-  s.loop("method", funcRecords, function (i, funcRecord, s) {
-    s.attr("anchor", "id", funcRecord.name);
-    s.text("name", funcRecord.name);
-    s.load("signature", buildFunctionSignature(funcRecord));
-    s.load("description", funcRecord.description);
+  s.loop("method", functionDocs, function (i, functionDoc, s) {
+    s.attr("anchor", "id", functionDoc.name);
+    s.text("name", functionDoc.name);
+    s.load("signature", buildFunctionSignature(functionDoc));
+    s.load("description", functionDoc.description);
 
-    s.loop("param", funcRecord.params, function (i, param, s) {
+    s.loop("param", functionDoc.params, function (i, param, s) {
       s.autoDrop = false;
       s.attr("param", "data-depth", param.name.split(".").length - 1);
       s.text("name", param.name);
@@ -155,14 +247,14 @@ function buildMethods(funcRecords) {
       s.text("appendix", appendix.join(", "));
     });
 
-    if (!funcRecord.params) {
+    if (!functionDoc.params) {
       s.drop("argumentParams");
     }
 
-    if (funcRecord.returns) {
-      s.load("returnDescription", funcRecord.returns[0].description);
+    if (functionDoc.returns) {
+      s.load("returnDescription", functionDoc.returns[0].description);
       var typeNames = [];
-      for (var _iterator = funcRecord.returns[0].type.names[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
+      for (var _iterator = functionDoc.returns[0].type.names[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
         var typeName = _step.value;
         typeNames.push(buildDocLink(typeName));
       }
@@ -175,45 +267,16 @@ function buildMethods(funcRecords) {
   return s.html;
 }
 
-function buildMembers(memberRecords) {
+// kind = member
+function buildMembers(memberDocs) {
   var s = new SpruceTemplate(readTemplate("members.html"));
 
-  s.loop("member", memberRecords, function (i, memberRecord, s) {
-    s.attr("anchor", "id", memberRecord.name);
-    s.text("name", memberRecord.name);
-    s.load("signature", buildVariableSignature(memberRecord));
-    s.load("description", memberRecord.description);
+  s.loop("member", memberDocs, function (i, memberDoc, s) {
+    s.attr("anchor", "id", memberDoc.name);
+    s.text("name", memberDoc.name);
+    s.load("signature", buildVariableSignature(memberDoc));
+    s.load("description", memberDoc.description);
   });
-
-  return s.html;
-}
-
-function buildClass(clazz, data) {
-  var s = new SpruceTemplate(readTemplate("class.html"));
-
-  s.text("nameSpace", clazz.memberof);
-  s.text("className", clazz.name);
-  s.load("classDesc", clazz.classdesc);
-
-  var summaryConstructorHTML = buildSummaryConstructor(clazz);
-  s.load("summaryConstructor", summaryConstructorHTML);
-
-  var summaryMembersHTML = buildSummaryMembers(clazz);
-  s.load("summaryMembers", summaryMembersHTML);
-
-  var summaryMethodsHTML = buildSummaryMethods(clazz);
-  s.load("summaryMethods", summaryMethodsHTML);
-
-  var constructorHTML = buildMethods([clazz]);
-  s.load("constructor", constructorHTML);
-
-  var members = find(ENV.data, { kind: "member", memberof: clazz.longname });
-  var membersHTML = buildMembers(members);
-  s.load("members", membersHTML);
-
-  var methods = find(ENV.data, { kind: "function", memberof: clazz.longname });
-  var methodsHTML = buildMethods(methods);
-  s.load("methods", methodsHTML);
 
   return s.html;
 }
@@ -223,6 +286,8 @@ function buildDocLink(longname) {
   var _ref = arguments[2] === undefined ? {} : arguments[2];
   var inner = _ref.inner;
   return (function () {
+    text = escape(text);
+
     if (inner) {
       return "<span><a href=#" + longname + ">" + text + "</a></span>";
     }
@@ -241,8 +306,8 @@ function buildDocLink(longname) {
   })();
 }
 
-function buildFunctionSignature(funcRecord) {
-  var params = funcRecord.params || [];
+function buildFunctionSignature(functionDoc) {
+  var params = functionDoc.params || [];
   var signatures = [];
   for (var _iterator = params[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
     var param = _step.value;
@@ -259,8 +324,8 @@ function buildFunctionSignature(funcRecord) {
   }
 
   var returnSignatures = [];
-  if (funcRecord.returns) {
-    for (var _iterator3 = funcRecord.returns[0].type.names[Symbol.iterator](), _step3; !(_step3 = _iterator3.next()).done;) {
+  if (functionDoc.returns) {
+    for (var _iterator3 = functionDoc.returns[0].type.names[Symbol.iterator](), _step3; !(_step3 = _iterator3.next()).done;) {
       var typeName = _step3.value;
       returnSignatures.push(buildDocLink(typeName, typeName));
     }
@@ -336,25 +401,39 @@ exports.publish = function (data, config, tutorials) {
   s.load("content", indexHTML);
   writeHTML(config, "index.html", s.html);
 
+  // @global.html
+  var globalHTML = buildGlobal(data);
+  s.load("content", globalHTML);
+  writeHTML(config, "@global.html", s.html);
+
   // classes
-  var classes = find(data, { kind: "class", name: "ReadableStream" });
-  var classHTML = buildClass(classes[0], data);
-  s.load("content", classHTML);
-  writeHTML(config, "" + classes[0].longname + ".html", s.html);
+  //var classes = find(data, {kind: 'class', name: 'ReadableStream'});
+  //var classHTML = buildClass(classes[0], data);
+  //s.load('content', classHTML);
+  //writeHTML(config, `${classes[0].longname}.html`, s.html);
+
+  // functions
+  var functionDocs = find(data, { kind: "function", memberof: { isUndefined: true }, scope: "global" });
+
+  // namespaces
+  var namespaceDocs = find(data, { kind: "namespace" });
+  for (var _iterator = namespaceDocs[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
+    var namespaceDoc = _step.value;
+    var namespaceHTML = buildNamespace(namespaceDoc, data);
+    s.load("content", namespaceHTML);
+    writeHTML(config, "" + namespaceDoc.longname + ".html", s.html);
+  }
+
+  var classes = find(data, { kind: "class" });
+  for (var _iterator2 = classes[Symbol.iterator](), _step2; !(_step2 = _iterator2.next()).done;) {
+    var clazz = _step2.value;
+    var classHTML = buildClass(clazz, data);
+    s.load("content", classHTML);
+    writeHTML(config, "" + clazz.longname + ".html", s.html);
+  }
 
 
-  //var classes = find(data, {kind: 'class'});
-  //for (var clazz of classes) {
-  //  var classHTML = buildClass(clazz, data);
-  //  s.load('content', classHTML);
-  //  writeHTML(config, `${clazz.longname}.html`, s.html);
-  //}
-
-
-  // copy css
-  //var dest = path.resolve(config.destination, './css');
-  //fs.rmdirSync(dest);
-  //copyDir(path.resolve(__dirname, './template/css'), dest);
+  // copy css and script
   fs.copySync(path.resolve(__dirname, "./template/css"), path.resolve(config.destination, "./css"));
   fs.copySync(path.resolve(__dirname, "./template/script"), path.resolve(config.destination, "./script"));
 };

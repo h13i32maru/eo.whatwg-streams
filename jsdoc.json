@@ -5,7 +5,8 @@
     "hardwrap": true
   },
   "source": {
-    "include": "./interface/"
+    "_include": "./interface/",
+    "include": "./interface/sample.d.js"
   },
   "opts": {
     "_template": "./misc/jsdoc/default",
