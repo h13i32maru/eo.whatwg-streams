@@ -126,6 +126,8 @@ function buildClass(clazz, data) {
   s.text("nameSpace", clazz.memberof);
   s.text("className", clazz.name);
   s.load("classDesc", clazz.classdesc);
+  s.text("classexampleCode", clazz.classexample);
+  s.drop("classexampleDoc", !clazz.classexample);
 
   s.load("summaryConstructor", buildSummaryFunctions([clazz], "Constructor"));
   s.load("summaryMembers", buildSummaryMembers(memberDocs, "Members"));
@@ -136,11 +138,6 @@ function buildClass(clazz, data) {
 
   return s.html;
 }
-
-//function buildGlobal(data) {
-//  var functionDocs = find(data, {kind: 'function', memberof: {isUndefined: true}, scope: 'global'});
-//  return buildFunctions(functionDocs);
-//}
 
 function buildNamespace(namespaceDoc, data) {
   if (namespaceDoc.longname === "@global") {
@@ -234,6 +231,7 @@ function buildFunctions(functionDocs) {
     s.load("signature", buildFunctionSignature(functionDoc));
     s.load("description", functionDoc.description);
 
+    // params
     s.loop("param", functionDoc.params, function (i, param, s) {
       s.autoDrop = false;
       s.attr("param", "data-depth", param.name.split(".").length - 1);
@@ -259,6 +257,7 @@ function buildFunctions(functionDocs) {
       s.drop("argumentParams");
     }
 
+    // return
     if (functionDoc.returns) {
       s.load("returnDescription", functionDoc.returns[0].description);
       var typeNames = [];
@@ -269,6 +268,15 @@ function buildFunctions(functionDocs) {
       s.load("returnType", typeNames.join(" | "));
     } else {
       s.drop("returnParams");
+    }
+
+    // example
+    var exampleDocs = functionDoc.examples;
+    s.loop("exampleDoc", exampleDocs, function (i, exampleDoc, s) {
+      s.text("exampleCode", exampleDoc);
+    });
+    if (!exampleDocs) {
+      s.drop("example");
     }
   });
 
@@ -284,6 +292,15 @@ function buildMembers(memberDocs) {
     s.text("name", memberDoc.name);
     s.load("signature", buildVariableSignature(memberDoc));
     s.load("description", memberDoc.description);
+
+    // example
+    var exampleDocs = memberDoc.examples;
+    s.loop("exampleDoc", exampleDocs, function (i, exampleDoc, s) {
+      s.text("exampleCode", exampleDoc);
+    });
+    if (!exampleDocs) {
+      s.drop("example");
+    }
   });
 
   return s.html;
@@ -391,6 +408,24 @@ function resolveLink(data) {
   });
 }
 
+function resolveClassExample(data) {
+  var classDocs = find(data, { kind: "class" });
+  for (var _iterator = classDocs[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
+    var classDoc = _step.value;
+    var matched = classDoc.comment.match(/^\s*\*\s@classexample((?:.|\n)*?)\n\s*\*\s@[a-z]/m);
+    if (matched) {
+      var lines = [];
+      for (var _iterator2 = matched[1].split("\n")[Symbol.iterator](), _step2; !(_step2 = _iterator2.next()).done;) {
+        var temp = _step2.value;
+        if (!temp) continue;
+        temp = temp.replace(/^\s*\*? ?/, "");
+        lines.push(temp);
+      }
+      classDoc.classexample = lines.join("\n");
+    }
+  }
+}
+
 function getGlobalNamespaceDoc(data) {
   if (find(data, { memberof: { isUndefined: true } }).length) {
     return { longname: "@global", name: "@global", kind: "namespace" };
@@ -411,6 +446,7 @@ exports.publish = function (data, config, tutorials) {
   ENV.config = config;
 
   resolveLink(data);
+  resolveClassExample(data);
 
   var s = new SpruceTemplate(readTemplate("layout.html"), { autoClose: false });
   s.text("date", new Date().toString());
@@ -424,19 +460,11 @@ exports.publish = function (data, config, tutorials) {
   s.load("content", buildReadme(config));
   writeHTML(config, "readme.html", s.html);
 
-  // @global.html
-  //var globalHTML = buildGlobal(data);
-  //s.load('content', globalHTML);
-  //writeHTML(config, '@global.html', s.html);
-
   // classes
   //var classes = find(data, {kind: 'class', name: 'ReadableStream'});
   //var classHTML = buildClass(classes[0], data);
   //s.load('content', classHTML);
   //writeHTML(config, `${classes[0].longname}.html`, s.html);
-
-  // functions
-  var functionDocs = find(data, { kind: "function", memberof: { isUndefined: true }, scope: "global" });
 
   // namespaces
   var namespaceDocs = find(data, { kind: "namespace" });

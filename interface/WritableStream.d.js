@@ -3,8 +3,7 @@
  * WritableStream represents a destination for data, into which you can write.
  * In other words, data goes in to a writable stream.
  *
- * example
- * ```js
+ * @classexample
  * function getWritableStream() {
  *   return new Streams.WritableStream({start, write});
  *
@@ -38,7 +37,6 @@
  *     ws.ready.then(pour);
  *   }
  * }
- * ```
  *
  * @class
  * @desc Constructs a new stream instance with underlying sink.

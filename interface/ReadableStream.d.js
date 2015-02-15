@@ -3,8 +3,7 @@
  * ReadableStream represents a source of data, from which you can read.
  * In other words, data comes out of a readable stream.
  *
- * example
- * ```js
+ * @classexample
  * function getReadableStream() {
  *   return new Streams.ReadableStream({start});
  *
@@ -50,7 +49,6 @@
  *     rs.ready.then(pump);
  *   }
  * }
- * ```
  *
  * @class
  * @desc Constructs a new stream instance with underlying source.

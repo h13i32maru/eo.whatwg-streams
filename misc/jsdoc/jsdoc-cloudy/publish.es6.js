@@ -118,6 +118,8 @@ function buildClass(clazz, data) {
   s.text('nameSpace', clazz.memberof);
   s.text('className', clazz.name);
   s.load('classDesc', clazz.classdesc);
+  s.text('classexampleCode', clazz.classexample);
+  s.drop('classexampleDoc', !clazz.classexample);
 
   s.load('summaryConstructor', buildSummaryFunctions([clazz], 'Constructor'));
   s.load('summaryMembers', buildSummaryMembers(memberDocs, 'Members'));
@@ -218,6 +220,7 @@ function buildFunctions(functionDocs) {
     s.load('signature', buildFunctionSignature(functionDoc));
     s.load('description', functionDoc.description);
 
+    // params
     s.loop('param', functionDoc.params, (i, param, s)=>{
       s.autoDrop = false;
       s.attr('param', 'data-depth', param.name.split('.').length - 1);
@@ -242,6 +245,7 @@ function buildFunctions(functionDocs) {
       s.drop('argumentParams');
     }
 
+    // return
     if (functionDoc.returns) {
       s.load('returnDescription', functionDoc.returns[0].description);
       var typeNames = [];
@@ -251,6 +255,15 @@ function buildFunctions(functionDocs) {
       s.load('returnType', typeNames.join(' | '));
     } else {
       s.drop('returnParams');
+    }
+
+    // example
+    var exampleDocs = functionDoc.examples;
+    s.loop('exampleDoc', exampleDocs, (i, exampleDoc, s)=>{
+      s.text('exampleCode', exampleDoc);
+    });
+    if (!exampleDocs) {
+      s.drop('example');
     }
   });
 
@@ -266,6 +279,15 @@ function buildMembers(memberDocs) {
     s.text('name', memberDoc.name);
     s.load('signature', buildVariableSignature(memberDoc));
     s.load('description', memberDoc.description);
+
+    // example
+    var exampleDocs = memberDoc.examples;
+    s.loop('exampleDoc', exampleDocs, (i, exampleDoc, s)=>{
+      s.text('exampleCode', exampleDoc);
+    });
+    if (!exampleDocs) {
+      s.drop('example');
+    }
   });
 
   return s.html;
@@ -362,6 +384,22 @@ function resolveLink(data) {
   });
 }
 
+function resolveClassExample(data) {
+  var classDocs = find(data, {kind: 'class'});
+  for (var classDoc of classDocs) {
+    var matched = classDoc.comment.match(/^\s*\*\s@classexample((?:.|\n)*?)\n\s*\*\s@[a-z]/m);
+    if (matched) {
+      var lines = [];
+      for (var temp of matched[1].split('\n')) {
+        if (!temp) continue;
+        temp = temp.replace(/^\s*\*? ?/, '');
+        lines.push(temp);
+      }
+      classDoc.classexample = lines.join('\n');
+    }
+  }
+}
+
 function getGlobalNamespaceDoc(data) {
   if (find(data, {memberof: {isUndefined: true}}).length) {
     return {longname: '@global', name: '@global', kind: 'namespace'};
@@ -382,6 +420,7 @@ exports.publish = function(data, config, tutorials) {
   ENV.config = config;
 
   resolveLink(data);
+  resolveClassExample(data);
 
   var s = new SpruceTemplate(readTemplate('layout.html'), {autoClose: false});
   s.text('date', new Date().toString());

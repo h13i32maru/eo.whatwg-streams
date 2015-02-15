@@ -2,11 +2,9 @@
  * @classdesc
  * CountQueuingStrategy uses chunk count for queue size.
  *
- * example
- * ```js
+ * @classexample
  * var strategy = new Streams.CountQueuingStrategy({highWaterMark: 32});
  * var rs = new Streams.ReadableStream({strategy});
- * ```
  *
  * @class
  * @param {Object} options
