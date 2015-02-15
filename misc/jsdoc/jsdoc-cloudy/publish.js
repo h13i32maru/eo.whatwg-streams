@@ -54,10 +54,7 @@ function getPackageObject(filePath) {
 }
 
 function buildNav(data) {
-  var myClasses = [];
-  data({ kind: "class" }).each(function (v) {
-    return myClasses.push(v);
-  });
+  var myClasses = find(data, { kind: "class" });
 
   var html = readTemplate("nav.html");
   var s = new SpruceTemplate(html);
@@ -93,11 +90,11 @@ function buildIndex(options) {
 function buildSummaryConstructor(clazz) {
   var s = new SpruceTemplate(readTemplate("summary.html"));
   s.text("title", "Constructor");
-  s.load("name", buildDocLink(clazz.longname, clazz.name, { inner: true }));
+  s.load("name", buildDocLink(clazz.name, clazz.name, { inner: true }));
   s.load("signature", buildFunctionSignature(clazz));
   s.load("description", shorten(clazz.description));
 
-  return s.close().html;
+  return s.html;
 }
 
 function buildSummaryMembers(clazz) {
@@ -106,12 +103,12 @@ function buildSummaryMembers(clazz) {
 
   s.text("title", "Members");
   s.loop("target", members, function (i, member, s) {
-    s.load("name", buildDocLink(member.longname, member.name, { inner: true }));
+    s.load("name", buildDocLink(member.name, member.name, { inner: true }));
     s.load("signature", buildVariableSignature(member));
     s.load("description", shorten(member.description));
   });
 
-  return s.close().html;
+  return s.html;
 }
 
 function buildSummaryMethods(clazz) {
@@ -120,12 +117,75 @@ function buildSummaryMethods(clazz) {
 
   s.text("title", "Methods");
   s.loop("target", methods, function (i, method, s) {
-    s.load("name", buildDocLink(method.longname, method.name, { inner: true }));
+    s.load("name", buildDocLink(method.name, method.name, { inner: true }));
     s.load("signature", buildFunctionSignature(method));
     s.load("description", shorten(method.description));
   });
 
-  return s.close().html;
+  return s.html;
+}
+
+function buildMethods(funcRecords) {
+  var s = new SpruceTemplate(readTemplate("methods.html"));
+
+  s.loop("method", funcRecords, function (i, funcRecord, s) {
+    s.attr("anchor", "id", funcRecord.name);
+    s.text("name", funcRecord.name);
+    s.load("signature", buildFunctionSignature(funcRecord));
+    s.load("description", funcRecord.description);
+
+    s.loop("param", funcRecord.params, function (i, param, s) {
+      s.autoDrop = false;
+      s.attr("param", "data-depth", param.name.split(".").length - 1);
+      s.text("name", param.name);
+      s.attr("name", "data-depth", param.name.split(".").length - 1);
+      s.load("description", param.description);
+
+      var typeNames = [];
+      for (var _iterator = param.type.names[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
+        var typeName = _step.value;
+        typeNames.push(buildDocLink(typeName));
+      }
+      s.load("type", typeNames.join(" | "));
+
+      var appendix = [];
+      if (param.optional) {
+        appendix.push("optional");
+      }
+      s.text("appendix", appendix.join(", "));
+    });
+
+    if (!funcRecord.params) {
+      s.drop("argumentParams");
+    }
+
+    if (funcRecord.returns) {
+      s.load("returnDescription", funcRecord.returns[0].description);
+      var typeNames = [];
+      for (var _iterator = funcRecord.returns[0].type.names[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
+        var typeName = _step.value;
+        typeNames.push(buildDocLink(typeName));
+      }
+      s.load("returnType", typeNames.join(" | "));
+    } else {
+      s.drop("returnParams");
+    }
+  });
+
+  return s.html;
+}
+
+function buildMembers(memberRecords) {
+  var s = new SpruceTemplate(readTemplate("members.html"));
+
+  s.loop("member", memberRecords, function (i, memberRecord, s) {
+    s.attr("anchor", "id", memberRecord.name);
+    s.text("name", memberRecord.name);
+    s.load("signature", buildVariableSignature(memberRecord));
+    s.load("description", memberRecord.description);
+  });
+
+  return s.html;
 }
 
 function buildClass(clazz, data) {
@@ -144,34 +204,41 @@ function buildClass(clazz, data) {
   var summaryMethodsHTML = buildSummaryMethods(clazz);
   s.load("summaryMethods", summaryMethodsHTML);
 
-  //data({memberof: clazz.longname}).each(v=> console.log(v.name)) ;
-  //data({longname: clazz.longname}).each(v=> console.log(v)) ;
-  //console.log(find(data, {memberof: clazz.longname}));
-  //console.log(clazz);
+  var constructorHTML = buildMethods([clazz]);
+  s.load("constructor", constructorHTML);
 
-  //console.log(JSON.stringify(clazz.params, null, 2));
+  var members = find(ENV.data, { kind: "member", memberof: clazz.longname });
+  var membersHTML = buildMembers(members);
+  s.load("members", membersHTML);
 
-  return s.close().html;
+  var methods = find(ENV.data, { kind: "function", memberof: clazz.longname });
+  var methodsHTML = buildMethods(methods);
+  s.load("methods", methodsHTML);
+
+  return s.html;
 }
 
-function buildDocLink(longname, text) {
+function buildDocLink(longname) {
+  var text = arguments[1] === undefined ? longname : arguments[1];
   var _ref = arguments[2] === undefined ? {} : arguments[2];
   var inner = _ref.inner;
-  if (inner) {
-    return "<span><a href=#" + longname + ">" + text + "</a></span>";
-  }
-
-  var result = find(ENV.data, { longname: longname });
-  if (result && result.length === 1) {
-    return "<span><a href=" + longname + ".html>" + text + "</a></span>";
-  } else {
-    var result = find(ENV.data, { name: longname });
-    if (result && result.length) {
-      return "<span><a href=" + result[0].longname + ".html>" + text + "</a></span>";
-    } else {
-      return "<span>" + text + "</span>";
+  return (function () {
+    if (inner) {
+      return "<span><a href=#" + longname + ">" + text + "</a></span>";
     }
-  }
+
+    var result = find(ENV.data, { longname: longname });
+    if (result && result.length === 1) {
+      return "<span><a href=" + longname + ".html>" + text + "</a></span>";
+    } else {
+      var result = find(ENV.data, { name: longname });
+      if (result && result.length) {
+        return "<span><a href=" + result[0].longname + ".html>" + text + "</a></span>";
+      } else {
+        return "<span>" + text + "</span>";
+      }
+    }
+  })();
 }
 
 function buildFunctionSignature(funcRecord) {
@@ -216,29 +283,72 @@ function buildVariableSignature(propRecord) {
   return ": " + types.join(", ");
 }
 
+function link(str) {
+  if (!str) return str;
+
+  return str.replace(/\{@link ([\w\#_\-.]+)}/g, function (str, cap) {
+    var temp = cap.split("#"); // cap = HogeFoo#bar
+    var text = temp[0].split(".").reverse()[0];
+    temp[0] += ".html";
+    return "<a href=\"" + temp.join("#") + "\">" + cap + "</a>";
+  });
+}
+
+function resolveLink(data) {
+  data().each(function (v) {
+    v.description = link(v.description);
+
+    if (v.params) {
+      for (var _iterator = v.params[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
+        var param = _step.value;
+        param.description = link(param.description);
+      }
+    }
+
+    if (v.returns) {
+      for (var _iterator2 = v.returns[Symbol.iterator](), _step2; !(_step2 = _iterator2.next()).done;) {
+        var returnParam = _step2.value;
+        returnParam.description = link(returnParam.description);
+      }
+    }
+  });
+}
+
 var ENV = {};
 
+/**
+ * @param {TaffyDB} data see http://www.taffydb.com/
+ * @param config
+ * @param tutorials
+ */
 exports.publish = function (data, config, tutorials) {
   ENV.data = data;
   ENV.config = config;
 
-  var navHTML = buildNav(data);
-  var indexHTML = buildIndex(config);
+  resolveLink(data);
 
-  var layoutHTML = readTemplate("layout.html");
-  var s = new SpruceTemplate(layoutHTML);
+  var s = new SpruceTemplate(readTemplate("layout.html"), { autoClose: false });
   s.text("date", new Date().toString());
-  s.load("nav", navHTML);
+  s.load("nav", buildNav(data));
+
+  // index.html
+  var indexHTML = buildIndex(config);
   s.load("content", indexHTML);
   writeHTML(config, "index.html", s.html);
 
+  // classes
   var classes = find(data, { kind: "class", name: "ReadableStream" });
   var classHTML = buildClass(classes[0], data);
-  //var s = new SpruceTemplate(layoutHTML);
-  //s.load('nav', navHTML);
   s.load("content", classHTML);
-  //s.close();
   writeHTML(config, "" + classes[0].longname + ".html", s.html);
+
+
+  //var classes = find(data, {kind: 'class'});
+  //for (var clazz of classes) {
+  //  var classHTML = buildClass(clazz, data);
+  //  s.load('content', classHTML);
+  //  writeHTML(config, `${clazz.longname}.html`, s.html);
+  //}
 
 
   // copy css
