@@ -3,7 +3,7 @@
  * ReadableStream represents a source of data, from which you can read.
  * In other words, data comes out of a readable stream.
  *
- * @classexample
+ * @fileexample
  * function getReadableStream() {
  *   return new Streams.ReadableStream({start});
  *

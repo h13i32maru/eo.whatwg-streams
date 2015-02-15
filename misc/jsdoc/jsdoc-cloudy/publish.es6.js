@@ -118,8 +118,8 @@ function buildClass(clazz, data) {
   s.text('nameSpace', clazz.memberof);
   s.text('className', clazz.name);
   s.load('classDesc', clazz.classdesc);
-  s.text('classexampleCode', clazz.classexample);
-  s.drop('classexampleDoc', !clazz.classexample);
+  s.text('fileexampleCode', clazz.fileexample);
+  s.drop('fileexampleDoc', !clazz.fileexample);
 
   s.load('summaryConstructor', buildSummaryFunctions([clazz], 'Constructor'));
   s.load('summaryMembers', buildSummaryMembers(memberDocs, 'Members'));
@@ -146,7 +146,9 @@ function buildNamespace(namespaceDoc, data) {
 
   s.text('parentNamespace', namespaceDoc.namespace);
   s.text('namespace', namespaceDoc.longname);
-  s.text('namespaceDesc', namespaceDoc.description);
+  s.load('namespaceDesc', namespaceDoc.description);
+  s.text('fileexampleCode', namespaceDoc.fileexample);
+  s.drop('fileexampleDoc', !namespaceDoc.fileexample);
 
   s.load('summaryClassDocs', buildSummaryClasses(classDocs));
   s.load('summaryMemberDocs', buildSummaryMembers(memberDocs, 'Members'));
@@ -158,7 +160,9 @@ function buildNamespace(namespaceDoc, data) {
   return s.html;
 }
 
-function buildSummaryMembers(memberDocs, title = 'Members') {
+function buildSummaryMembers(memberDocs = [], title = 'Members') {
+  if (memberDocs.length === 0) return '';
+
   var s = new SpruceTemplate(readTemplate('summary.html'));
 
   s.text('title', 'Members');
@@ -171,7 +175,9 @@ function buildSummaryMembers(memberDocs, title = 'Members') {
   return s.html;
 }
 
-function buildSummaryFunctions(functionDocs, title = 'Functions') {
+function buildSummaryFunctions(functionDocs = [], title = 'Functions') {
+  if (functionDocs.length === 0) return '';
+
   var s = new SpruceTemplate(readTemplate('summary.html'));
 
   s.text('title', title);
@@ -184,7 +190,9 @@ function buildSummaryFunctions(functionDocs, title = 'Functions') {
   return s.html;
 }
 
-function buildSummaryClasses(classDocs, innerLink = false) {
+function buildSummaryClasses(classDocs = [], innerLink = false) {
+  if (classDocs.length === 0) return '';
+
   var s = new SpruceTemplate(readTemplate('summary.html'));
 
   s.text('title', 'Classes');
@@ -197,7 +205,9 @@ function buildSummaryClasses(classDocs, innerLink = false) {
   return s.html;
 }
 
-function buildSummaryNamespaces(namespaceDocs) {
+function buildSummaryNamespaces(namespaceDocs = []) {
+  if (namespaceDocs.length === 0) return '';
+
   var s = new SpruceTemplate(readTemplate('summary.html'));
 
   s.text('title', 'Namespaces');
@@ -384,18 +394,18 @@ function resolveLink(data) {
   });
 }
 
-function resolveClassExample(data) {
-  var classDocs = find(data, {kind: 'class'});
-  for (var classDoc of classDocs) {
-    var matched = classDoc.comment.match(/^\s*\*\s@classexample((?:.|\n)*?)\n\s*\*\s@[a-z]/m);
-    if (matched) {
+function resolveFileExample(data) {
+  var docs = find(data, [{kind: 'class'}, {kind: 'namespace'}]);
+  for (var doc of docs) {
+    var matched = doc.comment.match(/^\s*\*\s@fileexample((?:.|\n)*?)\n\s*\*(?:(?:\s@[a-z])|[/])/m);
+    if (matched && matched[1]) {
       var lines = [];
       for (var temp of matched[1].split('\n')) {
         if (!temp) continue;
         temp = temp.replace(/^\s*\*? ?/, '');
         lines.push(temp);
       }
-      classDoc.classexample = lines.join('\n');
+      doc.fileexample = lines.join('\n');
     }
   }
 }
@@ -420,7 +430,7 @@ exports.publish = function(data, config, tutorials) {
   ENV.config = config;
 
   resolveLink(data);
-  resolveClassExample(data);
+  resolveFileExample(data);
 
   var s = new SpruceTemplate(readTemplate('layout.html'), {autoClose: false});
   s.text('date', new Date().toString());

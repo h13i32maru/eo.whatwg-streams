@@ -3,7 +3,7 @@
  * ByteLengthQueuingStrategy uses chunk byte for queue size.
  * this strategy is only used for chunk that has ``.byteLength`` property.
  *
- * @classexample
+ * @filesexample
  * var strategy = new Streams.ByteLengthQueuingStrategy({highWaterMark: 1024});
  * var rs = new Streams.ReadableStream({strategy});
  *

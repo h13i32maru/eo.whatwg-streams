@@ -3,7 +3,7 @@
  * WritableStream represents a destination for data, into which you can write.
  * In other words, data goes in to a writable stream.
  *
- * @classexample
+ * @fileexample
  * function getWritableStream() {
  *   return new Streams.WritableStream({start, write});
  *

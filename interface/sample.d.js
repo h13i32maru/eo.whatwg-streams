@@ -63,7 +63,7 @@ function sampleFunction2(arg1, arg2) {}
 
 /**
  * @classdesc this is classdesc of SampleClass0.
- * @classexample var hoge = 10;
+ * @fileexample var hoge = 10;
  * var foo = new Sample(123, 'foo');
  * foo.method1(true, {flag: false});
  * foo.member1 = 'bar';
@@ -121,3 +121,17 @@ function SampleClass1(arg1, arg2) {
  * @return {string[]} this is string array.
  */
 SampleClass1.staticMethod = function(arg1, arg2){};
+
+/**
+ * this is desc sampleFunctionX
+ * @namespace
+ * @fileexample
+ * var x = sampleFunction();
+ */
+function sampleFunctionX(){}
+
+/**
+ * this is desc of sampleFunctionY.
+ * @memberof sampleFunctionX
+ */
+function sampleFunctionY(){}

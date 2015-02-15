@@ -126,8 +126,8 @@ function buildClass(clazz, data) {
   s.text("nameSpace", clazz.memberof);
   s.text("className", clazz.name);
   s.load("classDesc", clazz.classdesc);
-  s.text("classexampleCode", clazz.classexample);
-  s.drop("classexampleDoc", !clazz.classexample);
+  s.text("fileexampleCode", clazz.fileexample);
+  s.drop("fileexampleDoc", !clazz.fileexample);
 
   s.load("summaryConstructor", buildSummaryFunctions([clazz], "Constructor"));
   s.load("summaryMembers", buildSummaryMembers(memberDocs, "Members"));
@@ -154,7 +154,9 @@ function buildNamespace(namespaceDoc, data) {
 
   s.text("parentNamespace", namespaceDoc.namespace);
   s.text("namespace", namespaceDoc.longname);
-  s.text("namespaceDesc", namespaceDoc.description);
+  s.load("namespaceDesc", namespaceDoc.description);
+  s.text("fileexampleCode", namespaceDoc.fileexample);
+  s.drop("fileexampleDoc", !namespaceDoc.fileexample);
 
   s.load("summaryClassDocs", buildSummaryClasses(classDocs));
   s.load("summaryMemberDocs", buildSummaryMembers(memberDocs, "Members"));
@@ -166,8 +168,11 @@ function buildNamespace(namespaceDoc, data) {
   return s.html;
 }
 
-function buildSummaryMembers(memberDocs) {
+function buildSummaryMembers() {
+  var memberDocs = arguments[0] === undefined ? [] : arguments[0];
   var title = arguments[1] === undefined ? "Members" : arguments[1];
+  if (memberDocs.length === 0) return "";
+
   var s = new SpruceTemplate(readTemplate("summary.html"));
 
   s.text("title", "Members");
@@ -180,8 +185,11 @@ function buildSummaryMembers(memberDocs) {
   return s.html;
 }
 
-function buildSummaryFunctions(functionDocs) {
+function buildSummaryFunctions() {
+  var functionDocs = arguments[0] === undefined ? [] : arguments[0];
   var title = arguments[1] === undefined ? "Functions" : arguments[1];
+  if (functionDocs.length === 0) return "";
+
   var s = new SpruceTemplate(readTemplate("summary.html"));
 
   s.text("title", title);
@@ -194,8 +202,11 @@ function buildSummaryFunctions(functionDocs) {
   return s.html;
 }
 
-function buildSummaryClasses(classDocs) {
+function buildSummaryClasses() {
+  var classDocs = arguments[0] === undefined ? [] : arguments[0];
   var innerLink = arguments[1] === undefined ? false : arguments[1];
+  if (classDocs.length === 0) return "";
+
   var s = new SpruceTemplate(readTemplate("summary.html"));
 
   s.text("title", "Classes");
@@ -208,7 +219,10 @@ function buildSummaryClasses(classDocs) {
   return s.html;
 }
 
-function buildSummaryNamespaces(namespaceDocs) {
+function buildSummaryNamespaces() {
+  var namespaceDocs = arguments[0] === undefined ? [] : arguments[0];
+  if (namespaceDocs.length === 0) return "";
+
   var s = new SpruceTemplate(readTemplate("summary.html"));
 
   s.text("title", "Namespaces");
@@ -408,12 +422,12 @@ function resolveLink(data) {
   });
 }
 
-function resolveClassExample(data) {
-  var classDocs = find(data, { kind: "class" });
-  for (var _iterator = classDocs[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
-    var classDoc = _step.value;
-    var matched = classDoc.comment.match(/^\s*\*\s@classexample((?:.|\n)*?)\n\s*\*\s@[a-z]/m);
-    if (matched) {
+function resolveFileExample(data) {
+  var docs = find(data, [{ kind: "class" }, { kind: "namespace" }]);
+  for (var _iterator = docs[Symbol.iterator](), _step; !(_step = _iterator.next()).done;) {
+    var doc = _step.value;
+    var matched = doc.comment.match(/^\s*\*\s@fileexample((?:.|\n)*?)\n\s*\*(?:(?:\s@[a-z])|[/])/m);
+    if (matched && matched[1]) {
       var lines = [];
       for (var _iterator2 = matched[1].split("\n")[Symbol.iterator](), _step2; !(_step2 = _iterator2.next()).done;) {
         var temp = _step2.value;
@@ -421,7 +435,7 @@ function resolveClassExample(data) {
         temp = temp.replace(/^\s*\*? ?/, "");
         lines.push(temp);
       }
-      classDoc.classexample = lines.join("\n");
+      doc.fileexample = lines.join("\n");
     }
   }
 }
@@ -446,7 +460,7 @@ exports.publish = function (data, config, tutorials) {
   ENV.config = config;
 
   resolveLink(data);
-  resolveClassExample(data);
+  resolveFileExample(data);
 
   var s = new SpruceTemplate(readTemplate("layout.html"), { autoClose: false });
   s.text("date", new Date().toString());
