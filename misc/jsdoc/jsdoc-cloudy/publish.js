@@ -86,6 +86,9 @@ function buildNav(data) {
 function buildIndex(data, options) {
   var packageObj = getPackageObject(options["package"]);
   var title = options.template.title || packageObj.name;
+  var desc = options.template.description || packageObj.description;
+  var version = options.template.version || packageObj.version;
+  var url = options.url || packageObj.repository.url;
   var classDocs = find(data, { kind: "class" });
   var namespaceDocs = find(data, { kind: "namespace" });
   var globalNamespaceDoc = getGlobalNamespaceDoc(data);
@@ -96,16 +99,12 @@ function buildIndex(data, options) {
   var s = new SpruceTemplate(readTemplate("index.html"));
 
   s.text("title", title);
+  s.text("version", version);
+  s.text("url", url);
+  s.attr("url", "href", url);
+  s.text("description", desc);
   s.load("summaryClassDocs", buildSummaryClasses(classDocs));
   s.load("summaryNamespaceDocs", buildSummaryNamespaces(namespaceDocs));
-
-  if (options["package"]) {
-    s.text("version", packageObj.version);
-    s.text("repo", packageObj.repository.url);
-    s.attr("repo", "href", packageObj.repository.url);
-  } else {
-    s.drop("package");
-  }
 
   return s.html;
 }

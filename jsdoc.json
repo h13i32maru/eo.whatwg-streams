@@ -18,6 +18,7 @@
     "package": "./package.json"
   },
   "template": {
-    "title": "eo.whatwg-streams"
+    "title": "eo.whatwg-streams",
+    "description": "WHATWG Streams API"
   }
 }

@@ -111,6 +111,12 @@ p > code {
   margin: 4px 0;
 }
 
+h1 .version,
+h1 .url a {
+  font-size: 14px;
+  color: #aaa;
+}
+
 .content {
   margin-left: 230px;
   padding: 10px 50px 10px 20px;
