@@ -109,8 +109,10 @@ function buildReadme(options) {
 }
 
 function buildClass(clazz, data) {
-  var memberDocs = find(data, {kind: 'member', memberof: clazz.longname});
-  var methodDocs = find(data, {kind: 'function', memberof: clazz.longname});
+  var staticMemberDocs = find(data, {kind: 'member', memberof: clazz.longname, scope: 'static'});
+  var staticMethodDocs = find(data, {kind: 'function', memberof: clazz.longname, scope: 'static'});
+  var memberDocs = find(data, {kind: 'member', memberof: clazz.longname, scope: 'instance'});
+  var methodDocs = find(data, {kind: 'function', memberof: clazz.longname, scope: 'instance'});
 
   var s = new SpruceTemplate(readTemplate('class.html'));
 
@@ -120,11 +122,24 @@ function buildClass(clazz, data) {
   s.text('fileexampleCode', clazz.fileexample);
   s.drop('fileexampleDoc', !clazz.fileexample);
 
+  s.load('summaryStaticMembers', buildSummaryMembers(staticMemberDocs, 'Static Members'));
+  s.load('summaryStaticMethods', buildSummaryFunctions(staticMethodDocs, 'Static Methods'));
   s.load('summaryConstructor', buildSummaryFunctions([clazz], 'Constructor'));
   s.load('summaryMembers', buildSummaryMembers(memberDocs, 'Members'));
   s.load('summaryMethods', buildSummaryFunctions(methodDocs, 'Methods'));
+
+  s.drop('staticMembersTitle', !staticMemberDocs.length);
+  s.load('staticMembers', buildMembers(staticMemberDocs));
+
+  s.drop('staticMethodsTitle', !staticMethodDocs.length);
+  s.load('staticMethods', buildFunctions(staticMethodDocs));
+
   s.load('constructor', buildFunctions([clazz]));
+
+  s.drop('membersTitle', !memberDocs.length);
   s.load('members', buildMembers(memberDocs));
+
+  s.drop('methodsTitle', !methodDocs.length);
   s.load('methods', buildFunctions(methodDocs));
 
   return s.html;
@@ -164,7 +179,7 @@ function buildSummaryMembers(memberDocs = [], title = 'Members') {
 
   var s = new SpruceTemplate(readTemplate('summary.html'));
 
-  s.text('title', 'Members');
+  s.text('title', title);
   s.loop('target', memberDocs, (i, memberDoc, s)=>{
     s.load('name', buildDocLink(memberDoc.name, memberDoc.name, {inner: true}));
     s.load('signature', buildVariableSignature(memberDoc));
@@ -411,7 +426,7 @@ function resolveFileExample(data) {
 
 function getGlobalNamespaceDoc(data) {
   if (find(data, {memberof: {isUndefined: true}}).length) {
-    return {longname: '@global', name: '@global', kind: 'namespace'};
+    return {longname: '@global', name: '@global', kind: 'namespace', description: 'global object.'};
   }
 
   return null;

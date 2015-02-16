@@ -115,12 +115,18 @@ function SampleClass1(arg1, arg2) {
 }
 
 /**
- * this is desc of staticMethod.
+ * this is desc of staticMethod1.
  * @param {boolean} arg1 this is boolean argument.
  * @param {Object} arg2 this is Object argument.
  * @return {string[]} this is string array.
  */
-SampleClass1.staticMethod = function(arg1, arg2){};
+SampleClass1.staticMethod1 = function(arg1, arg2){};
+
+/**
+ * this is desc of staticMember1.
+ * @member {string}
+ */
+SampleClass1.staticMember1;
 
 /**
  * this is desc sampleFunctionX
