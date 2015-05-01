@@ -19,6 +19,8 @@
   },
   "template": {
     "title": "eo.whatwg-streams",
-    "description": "WHATWG Streams API"
+    "description": "WHATWG Streams API",
+    "stylesheet": ["hoge.css"],
+    "javascript": ["hoge.js"]
   }
 }
